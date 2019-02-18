@@ -14,7 +14,7 @@ class Scene {
             objectsToRender.push_back(obj);
         }
 
-        void renderObj(std::shared_ptr<GameObject> & obj, std::shared_ptr<PerspectiveCamera> & camera) {
+        void renderObj(std::shared_ptr<GameObject> & obj, std::shared_ptr<PerspectiveCamera> & camera, float totalTime) {
             std::vector<std::shared_ptr<Component>> components = obj->components;
 
             for (auto & componentPtr : components) {
@@ -25,22 +25,21 @@ class Scene {
                     continue;
                 }
 
-                if (mesh->dataReady && !mesh->prepared) {
-
+                if (!mesh->prepared) {
                     mesh->prepare();
                 }
 
                 if (mesh->prepared) {
                     glBindTexture(GL_TEXTURE_2D, mesh->textureId);
-                    camera->Render(mesh);
+                    camera->Render(mesh, totalTime);
                     break;
                 }
             }
         }
 
-        void render(std::shared_ptr<PerspectiveCamera> & camera) {
+        void render(std::shared_ptr<PerspectiveCamera> & camera, float totalTime) {
             for (auto & i : objectsToRender) {
-                renderObj(i, camera);
+                renderObj(i, camera, totalTime);
             }
         }
 };

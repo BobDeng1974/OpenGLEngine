@@ -13,7 +13,7 @@ class Line : public Mesh {
             prepare();
         }
 
-        void Render() override {
+        void Render(float totalTime) override {
             Mesh::Render(GL_LINES, 2);
         }
 

@@ -13,7 +13,7 @@ int main() {
         return -1;
     }
 
-    engine->scene = createMainScene();
+    engine->scene = createTestScene();
     engine->renderingLoop();
 
     glfwTerminate();
@@ -176,7 +176,7 @@ std::shared_ptr<Scene> createTestScene() {
         shader->setVec4("color", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     };
 
-    std::shared_ptr<Cube> cube = std::make_shared<Cube>();
+    std::shared_ptr<Mesh> cube = std::make_shared<Mesh>();
     cube->loadMesh("resources/models/cube.obj");
     cube->shader = diffuseShader;
     cube->transform.position = glm::vec3(0.0f, 0.5f, 0.0f);
@@ -214,6 +214,7 @@ std::shared_ptr<Scene> createTestScene() {
     lampMeshObject->addComponent(lampMesh);
 
     auto cubeObject = std::make_shared<GameObject>();
+    cube->test = true;
     cubeObject->addComponent(cube);
 
     auto axisXObject = std::make_shared<GameObject>();

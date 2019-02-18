@@ -30,7 +30,6 @@ struct FaceInfo {
     glm::vec3 normal;
 };
 
-
 typedef std::shared_ptr<Shader>& ShaderPtrRef;
 typedef std::function<void(ShaderPtrRef)> ShaderFunc;
 
@@ -44,14 +43,17 @@ class Mesh : public Component {
 
         RenderFlag renderFlag = RenderFlag::PERSPECTIVE;
         GLenum mode = GL_TRIANGLES;
-        bool disableNormals = false;
 
+        bool disableNormals = false;
         bool dataReady = false;
         bool prepared = false;
+        bool test = false;
 
         GLuint textureId = 0;
 
         std::shared_ptr<Shader> shader;
+
+        float * pVertexPosBufferData;
 
         GLuint vao = 0;
         GLuint vbo = 0;
@@ -68,9 +70,6 @@ class Mesh : public Component {
         }
 
         void prepare() {
-
-            std::cout << "Preparing mesh" << std::endl;
-
             calculateNormals();
 
             glGenVertexArrays(1, &vao);
@@ -84,43 +83,82 @@ class Mesh : public Component {
             // Create vertex buffer
             glGenBuffers(1, &vbo);
             glBindBuffer(GL_ARRAY_BUFFER, vbo);
-            glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_DYNAMIC_DRAW);
 
-            // Enable vertex attribute array and set vertex attribute pointers
+            ///////////////////////////////////////////////////////////////////////////////////////////////////
+            GLbitfield mapFlags =
+                    GL_MAP_WRITE_BIT |
+                    GL_MAP_PERSISTENT_BIT |
+                    GL_MAP_COHERENT_BIT;
+            GLbitfield createFlags = mapFlags | GL_DYNAMIC_STORAGE_BIT;
+
+
+            glBufferStorage(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), 0,  createFlags);
+            pVertexPosBufferData = (float *) glMapBufferRange(GL_ARRAY_BUFFER, 0,  vertices.size() * sizeof(float), mapFlags);
+
             glEnableVertexAttribArray(0);
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-            // Create UV buffer
-            glGenBuffers(1, &uvbo);
-            glBindBuffer(GL_ARRAY_BUFFER, uvbo);
-            glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(float), &uvs[0], GL_DYNAMIC_DRAW);
+            for (int i = 0; i < vertices.size(); i+=3) {
+                pVertexPosBufferData[i] = vertices[i];
+                pVertexPosBufferData[i + 1] = vertices[i + 1];
+                pVertexPosBufferData[i + 2] = vertices[i + 2];
+            }
+            ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-            // Enable uv attribute array and set uv attribute pointers
-            glEnableVertexAttribArray(1);
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-            // Create normals buffer
-            glGenBuffers(1, &nbo);
-            glBindBuffer(GL_ARRAY_BUFFER, nbo);
-            glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float), &normals[0], GL_DYNAMIC_DRAW);
-
-            // Enable normals attribute array and set normals attribute pointers
-            glEnableVertexAttribArray(2);
-            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+            createUVBuffer();
+            createNormalsBuffer();
 
             glBindVertexArray(0);
 
             prepared = true;
         }
 
+        void createVertexBuffer() {
+
+        }
+
+        void createIndexBuffer() {
+
+        }
+
+        void createNormalsBuffer() {
+            glGenBuffers(1, &nbo);
+            glBindBuffer(GL_ARRAY_BUFFER, nbo);
+            glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float), &normals[0], GL_DYNAMIC_DRAW);
+            glEnableVertexAttribArray(2);
+            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        }
+
+        void createUVBuffer() {
+            glGenBuffers(1, &uvbo);
+            glBindBuffer(GL_ARRAY_BUFFER, uvbo);
+            glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(float), &uvs[0], GL_DYNAMIC_DRAW);
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        }
+
         void UpdateVertexBuffer() {
             prepared = false;
-            glBindBuffer(GL_ARRAY_BUFFER, vbo);
-            glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_DYNAMIC_DRAW);
+            for (int i = 0; i < vertices.size(); i+=3) {
+                pVertexPosBufferData[i] = vertices[i];
+                pVertexPosBufferData[i + 1] = vertices[i + 1];
+                pVertexPosBufferData[i + 2] = vertices[i + 2];
+            }
             prepared = true;
         }
 
-        virtual void Render() {
+        virtual void Render(float totalTime) {
+
+            if (test) {
+                for (int i = 0; i < vertices.size(); i += 3) {
+                    pVertexPosBufferData[i] = vertices[i] * sin(totalTime);
+                    pVertexPosBufferData[i + 1] = vertices[i + 1] * cos(totalTime);
+                    pVertexPosBufferData[i + 2] = vertices[i + 2] * sin(totalTime);
+                }
+            }
             Render(mode, static_cast<int>(indices.size()));
         }
 
@@ -209,7 +247,6 @@ class Mesh : public Component {
         }
 
         void loadMesh(const char * path) {
-
             std::cout << "Started loading: " << path << std::endl;
 
             tinyobj::attrib_t attrib;
@@ -232,7 +269,7 @@ class Mesh : public Component {
 
             vertices = attrib.vertices;
 
-            for (const auto &shape : shapes) {
+            for (const auto & shape : shapes) {
                 for (const auto &index : shape.mesh.indices) {
                     indices.push_back((unsigned int) index.vertex_index);
                 }

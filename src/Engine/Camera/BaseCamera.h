@@ -28,7 +28,7 @@ class BaseCamera : public Component {
             this->window = window;
         }
 
-        void Render(std::shared_ptr<Mesh> & renderObject) {
+        void Render(std::shared_ptr<Mesh> & renderObject, float totalTime) {
             std::shared_ptr<Shader> shader = renderObject->shader;
 
             shader->use();
@@ -47,7 +47,7 @@ class BaseCamera : public Component {
             shader->setMat4("v", getViewMatrix());
             renderObject->shaderInit(shader);
 
-            renderObject->Render();
+            renderObject->Render(totalTime);
         }
 
         glm::mat4 rotMat(glm::vec3 axis, float angle)
